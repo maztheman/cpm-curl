@@ -51,6 +51,7 @@ include(Utilities)
 include(Macros)
 include(CMakeDependentOption)
 include(CheckCCompilerFlag)
+include(CPM)
 
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/include/curl/curlver.h" _curl_version_h_contents REGEX "#define LIBCURL_VERSION( |_NUM )")
 string(REGEX MATCH "#define LIBCURL_VERSION \"[^\"]*" _curl_version ${_curl_version_h_contents})
@@ -197,6 +198,7 @@ option(BUILD_STATIC_LIBS "Build static libraries" OFF)
 option(BUILD_STATIC_CURL "Build curl executable with static libcurl" OFF)
 option(ENABLE_ARES "Enable c-ares support" OFF)
 option(CURL_DISABLE_INSTALL "Disable installation targets" OFF)
+option(CURL_USE_CPM_WOLFSSL "Set to ON to allow this project to pull in wolfssl directly" ON)
 
 if(WIN32)
   option(ENABLE_UNICODE "Use the Unicode version of the Windows API functions" OFF)
@@ -854,7 +856,19 @@ if(CURL_USE_BEARSSL)
 endif()
 
 if(CURL_USE_WOLFSSL)
-  find_package(WolfSSL REQUIRED)
+  if(CURL_USE_CPM_WOLFSSL AND BUILD_STATIC_LIBS)
+    CPMAddPackage(
+      NAME WolfSSL
+      VERSION 5.8.0-stable
+      URL https://github.com/wolfSSL/wolfssl/archive/refs/tags/v5.8.0-stable.tar.gz
+      OPTIONS
+      "WOLFSSL_CURL yes"
+      "WARNING_C_FLAGS -Wno-error")
+      set(WOLFSSL_LIBRARIES wolfssl)
+      set(WOLFSSL_INCLUDE_DIRS ${WolfSSL_SOURCE_DIR})
+  else()
+    find_package(WolfSSL REQUIRED)
+  endif()
   set(_ssl_enabled ON)
   set(USE_WOLFSSL ON)
   list(APPEND CURL_LIBS ${WOLFSSL_LIBRARIES})
